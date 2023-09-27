@@ -7,8 +7,8 @@ on:
     types:
       - closed
 
-env:
-  SUBMODULE_NAME: this-is-another-test
+#env:
+#  SUBMODULE_NAME: uncomment and add submodule name here
 
 jobs:
   cherry-pick:
