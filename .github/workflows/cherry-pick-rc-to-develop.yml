@@ -71,7 +71,7 @@ jobs:
           git commit -m "Update submodule ${{ env.SUBMODULE_NAME }} to latest from develop"
 
       - name: Get Cherry-pick commit
-        id: cherry
+        id: get-cherry
         if: steps.check_changes.outputs.shouldCherryPick == 'true'
         run: |
           if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
@@ -85,7 +85,7 @@ jobs:
           echo "cherryPickCommit=$CHERRY_PICK_COMMIT" >> $GITHUB_ENV
 
       - name: Cherry-pick commits
-        id: cherry
+        id: commit-cherry-pick
         if: steps.check_changes.outputs.shouldCherryPick == 'true'
         run: |
           # Checkout the desired branch and cherry-pick the commit  
