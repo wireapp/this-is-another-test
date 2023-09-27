@@ -7,6 +7,9 @@ on:
     types:
       - closed
 
+env:
+  SUBMODULE_NAME: this-is-another-test
+
 jobs:
   cherry-pick:
     runs-on: ubuntu-latest
@@ -14,7 +17,6 @@ jobs:
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      SUBMODULE_NAME: this-is-another-test
 
     steps:
       - name: Checkout
@@ -31,47 +33,65 @@ jobs:
           echo "New branch name: $NEW_BRANCH_NAME"
           echo "newBranchName=$NEW_BRANCH_NAME" >> $GITHUB_ENV
 
-      - name: Check if changes only in submodule
+      - name: Check for changes excluding submodule
         id: check_changes
         run: |
-          NUM_CHANGES=$(git diff origin/develop --name-only | grep -v '^${{ env.SUBMODULE_NAME }}/' | wc -l)
+          if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
+            # If SUBMODULE_NAME is set
+            NUM_CHANGES=$(git diff origin/develop --name-only | grep -v "^${{ env.SUBMODULE_NAME }}/" | wc -l)
+          else
+            # If SUBMODULE_NAME is not set
+            NUM_CHANGES=$(git diff origin/develop --name-only | wc -l)
+          fi
           if [ "$NUM_CHANGES" -gt 0 ]; then
             echo "::set-output name=shouldCherryPick::true"
           else
-            echo "No changes outside of ${{ env.SUBMODULE_NAME }} submodule, skipping cherry-pick"
+            if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
+              echo "No changes outside of ${{ env.SUBMODULE_NAME }} submodule, skipping cherry-pick"
+            else
+              echo "No changes detected, skipping cherry-pick"
+            fi
             echo "::set-output name=shouldCherryPick::false"
           fi
 
       - uses: fregante/setup-git-user@v2
 
-      - name: Cherry-pick commits
-        id: cherry
-        if: steps.check_changes.outputs.shouldCherryPick == 'true'
+      - name: Update submodule
+        if: env.SUBMODULE_NAME && steps.check_changes.outputs.shouldCherryPick == 'true'
         run: |
           set -x
           # Create a temporary branch and get the last commit message
           git checkout -b temp-branch-for-cherry-pick
           LAST_COMMIT_MESSAGE=$(git log --format=%B -n 1 ${{ github.event.pull_request.merge_commit_sha }})
-          
-          # Update the submodule and commit it
           cd ${{ env.SUBMODULE_NAME }}
           git checkout develop
           git pull origin develop
           cd ..
           git add ${{ env.SUBMODULE_NAME }}
-          git commit -m "Update ${{ env.SUBMODULE_NAME }} submodule to latest from develop"
+          git commit -m "Update submodule ${{ env.SUBMODULE_NAME }} to latest from develop"
+
+      - name: Get Cherry-pick commit
+        id: cherry
+        if: steps.check_changes.outputs.shouldCherryPick == 'true'
+        run: |
+          if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
+            # If SUBMODULE_NAME is set
+            git reset --soft HEAD~2
+            git commit -m "$LAST_COMMIT_MESSAGE"
+          fi
           
-          # Squash the commits and use the saved commit message
-          git reset --soft HEAD~2
-          git commit -m "$LAST_COMMIT_MESSAGE"
-          
-          # Get the SHA of the squashed commit
-          SQUASHED_COMMIT=$(git rev-parse HEAD)
-          
-          # Checkout the desired branch and cherry-pick the squashed commit  
+          # Get the SHA of the current commit (either squashed or not based on the condition above)
+          CHERRY_PICK_COMMIT=$(git rev-parse HEAD)
+          echo "cherryPickCommit=$CHERRY_PICK_COMMIT" >> $GITHUB_ENV
+
+      - name: Cherry-pick commits
+        id: cherry
+        if: steps.check_changes.outputs.shouldCherryPick == 'true'
+        run: |
+          # Checkout the desired branch and cherry-pick the commit  
           git checkout develop
-          git checkout -b ${{ env.newBranchName }}
-          OUTPUT=$(git cherry-pick $SQUASHED_COMMIT || true)
+          git checkout -b ${{ env.cherryPickCommit }}
+          OUTPUT=$(git cherry-pick ${{ env.cherryPickCommit }} || true)
           
           # Handle conflicts
           CONFLICTED_FILES=$(git diff --name-only --diff-filter=U)
