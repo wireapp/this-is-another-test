@@ -66,14 +66,14 @@ jobs:
             NUM_CHANGES=$(git diff origin/develop --name-only | wc -l)
           fi
           if [ "$NUM_CHANGES" -gt 0 ]; then
-            echo "::set-output name=shouldCherryPick::true"
+               echo "shouldCherryPick=true" >> $GITHUB_ENV
           else
             if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
               echo "No changes outside of ${{ env.SUBMODULE_NAME }} submodule, skipping cherry-pick"
             else
               echo "No changes detected, skipping cherry-pick"
             fi
-            echo "::set-output name=shouldCherryPick::false"
+            echo "shouldCherryPick=false" >> $GITHUB_ENV
           fi
 
       - uses: fregante/setup-git-user@v2
@@ -91,6 +91,7 @@ jobs:
           cd ..
           git add ${{ env.SUBMODULE_NAME }}
           git commit -m "Update submodule ${{ env.SUBMODULE_NAME }} to latest from develop"
+          echo "lastCommitMessage=LAST_COMMIT_MESSAGE" >> $GITHUB_ENV
 
       - name: Get Cherry-pick commit
         id: get-cherry
@@ -99,7 +100,7 @@ jobs:
           if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
             # If SUBMODULE_NAME is set
             git reset --soft HEAD~2
-            git commit -m "$LAST_COMMIT_MESSAGE"
+            git commit -m "${{ env.lastCommitMessage }}"
           fi
           
           # Get the SHA of the current commit (either squashed or not based on the condition above)
