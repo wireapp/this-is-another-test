@@ -103,7 +103,9 @@ jobs:
           # Push branch and remove temp
           git push origin ${{ env.newBranchName }} || (echo "Failed to push to origin" && exit 1)
           echo "conflictedFiles=$CONFLICTED_FILES" >> $GITHUB_ENV
+          if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
           git branch -D temp-branch-for-cherry-pick
+          fi
 
       - name: Create PR
         if: steps.check_changes.outputs.shouldCherryPick == 'true'
