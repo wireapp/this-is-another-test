@@ -20,7 +20,6 @@
 
 name: "Cherry-pick from rc to develop"
 
-# remember to add "cherry-pick" label to your project
 on:
   pull_request:
     branches:
@@ -79,7 +78,7 @@ jobs:
       - uses: fregante/setup-git-user@v2
 
       - name: Update submodule
-        if: env.SUBMODULE_NAME && steps.check_changes.outputs.shouldCherryPick == 'true'
+        if: env.SUBMODULE_NAME && env.shouldCherryPick == 'true'
         run: |
           set -x
           # Create a temporary branch and get the last commit message
@@ -95,7 +94,7 @@ jobs:
 
       - name: Get Cherry-pick commit
         id: get-cherry
-        if: steps.check_changes.outputs.shouldCherryPick == 'true'
+        if: env.shouldCherryPick == 'true'
         run: |
           if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
             # If SUBMODULE_NAME is set
@@ -109,7 +108,7 @@ jobs:
 
       - name: Cherry-pick commits
         id: commit-cherry-pick
-        if: steps.check_changes.outputs.shouldCherryPick == 'true'
+        if: env.shouldCherryPick == 'true'
         run: |
           # Checkout the desired branch and cherry-pick the commit  
           git checkout develop
@@ -131,7 +130,7 @@ jobs:
           fi
 
       - name: Create PR
-        if: steps.check_changes.outputs.shouldCherryPick == 'true'
+        if: env.shouldCherryPick == 'true'
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BRANCH: ${{ env.newBranchName }}
