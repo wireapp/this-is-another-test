@@ -90,7 +90,7 @@ jobs:
         run: |
           # Checkout the desired branch and cherry-pick the commit  
           git checkout develop
-          git checkout -b ${{ env.cherryPickCommit }}
+          git checkout -b ${{ env.newBranchName }}
           OUTPUT=$(git cherry-pick ${{ env.cherryPickCommit }} || true)
           
           # Handle conflicts
