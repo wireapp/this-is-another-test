@@ -127,6 +127,7 @@ jobs:
           echo "conflictedFiles=$CONFLICTED_FILES" >> $GITHUB_ENV
           if [[ -n "${{ env.SUBMODULE_NAME }}" ]]; then
           git branch -D temp-branch-for-cherry-pick
+          echo "${{ env.conflictedFiles }}"
           fi
 
       - name: Create PR
