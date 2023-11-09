@@ -117,7 +117,7 @@ jobs:
           
           # Handle conflicts
           # Join file names with '\n' to ensure it is a single line string
-          CONFLICTED_FILES=$(git diff --name-only --diff-filter=U | paste -sd '\\n' -)
+          CONFLICTED_FILES=$(git diff --name-only --diff-filter=U | awk 'ORS="\\\\n"' | sed 's/\\\\n$/\\n/')
           echo "Captured conflicted files: $CONFLICTED_FILES"
           if [[ "$OUTPUT" == *"CONFLICT"* ]]; then
               # Commit the remaining conflicts
