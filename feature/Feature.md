@@ -1,3 +1,3 @@
 # Feature file
 
-some feature rc 6
+some feature rc 7
